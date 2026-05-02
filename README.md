@@ -1,55 +1,49 @@
-# Sea Turtle Identification System
+# 🐢 Sea Turtle Identification System
 
-Bu proje, Caretta caretta bireylerini yüzlerindeki scute (pul) desenlerinden tanımaya yarayan multi-agent tabanlı bir yapay zeka sistemidir.
+Bu proje, Caretta caretta bireylerini yüzlerindeki scute (pul) desenlerinden tanımaya yarayan yapay zeka tabanlı bir **Streamlit Web Uygulamasıdır**. 
 
-## Mimari: Multi-Agent Pipeline
+Önceden eğitilmiş (Kaggle ortamında) **EfficientNetB3** tabanlı bir Keras modeli (`sea_turtle_model_v1.keras`) kullanılarak, kullanıcıların yüklediği kaplumbağa fotoğrafları saniyeler içinde analiz edilir ve kaplumbağanın ID'si (% güven skoru ile birlikte) tespit edilir.
 
-Proje, S (Single Responsibility) ve O (Open/Closed) SOLID prensiplerini uygulamak üzere 5 farklı ajan (agent) üzerinden tasarlanmıştır:
+## 🏗️ Mimari ve SOLID Prensipleri
 
-1. **DataAgent (`agents/data_agent.py`)**
-   - Sorumluluk: Kaggle API üzerinden `seaturtleid2022` veri setini indirir, train/val/test ayrımlarını (zamana duyarlı) yapar ve Data Augmentation uygular.
-   
-2. **SegmentationAgent (`agents/segmentation_agent.py`)**
-   - Sorumluluk: Orijinal maskeleri kullanarak kaplumbağa kafasını kırpar (crop) ve modele girmeden önce 224x224 boyutuna getirir.
+Sistem, S (Single Responsibility) ve D (Dependency Inversion) başta olmak üzere SOLID prensiplerine ve Clean Code standartlarına tam uyumlu olarak tasarlanmıştır:
 
-3. **FeatureExtractorAgent (`agents/feature_extractor_agent.py`)**
-   - Sorumluluk: Kırpılmış resimlerden 512 boyutlu embedding çıkarır. 
-   - *Open/Closed Prensibi (O)*: `BaseFeatureExtractor` soyut sınıfı ile genişlemeye açık bir yapı kurulmuştur.
+1. **Arayüz Katmanı (Predictor - `agents/predictor.py`)**
+   - *Dependency Inversion:* Sistemin çekirdeği, modelin TensorFlow mu yoksa PyTorch mu olduğunu bilmez. `Predictor` soyut sınıfı üzerinden haberleşir.
+
+2. **ModelAgent (`agents/model_agent.py`)**
+   - Sorumluluk: `sea_turtle_model_v1.keras` dosyasını yükler, görüntüyü `(1, 224, 224, 3)` boyutuna getirir ve `EfficientNetB3.preprocess_input` adımını uygulayarak tahmin yapar.
+
+3. **SegmentationAgent (`agents/segmentation_agent.py`)**
+   - Sorumluluk: Kullanıcının yüklediği orijinal görseli analiz için 224x224 boyutuna (IMG_SIZE) getirip ön işlemlerden geçirir.
 
 4. **MatchingAgent (`agents/matching_agent.py`)**
-   - Sorumluluk: `ArcFace` loss kullanarak özellik uzayında kaplumbağaların daha iyi ayrışmasını sağlar. Test kümesinde ise Cosine Similarity (Kosinüs Benzerliği) ile 1-NN eşleştirmesi yapar.
+   - Sorumluluk: Modelden dönen olasılık dağılım dizisindeki (probabilities) en yüksek skoru (argmax) bulur ve bunu `models/id_to_label.json` sözlüğü yardımıyla gerçek Turtle ID'sine dönüştürür.
 
-5. **EvaluationAgent (`agents/evaluation_agent.py`)**
-   - Sorumluluk: Tahminleri gerçek etiketlerle karşılaştırarak Top-1 ve Top-5 doğruluğunu hesaplar. Karışıklık matrisi (Confusion Matrix) oluşturur ve `results/` klasörüne kaydeder.
+5. **Web Arayüzü (`app.py`)**
+   - Sorumluluk: Kullanıcı ile sistemin etkileşimini sağlar. Streamlit altyapısı ile sadece dosya yükleme ve sonuç gösterme işlemlerini üstlenir.
 
-## Gereksinimler ve Kurulum
+## 🚀 Kurulum ve Çalıştırma
 
-Proje Python 3.10+ üzerinde çalışmaktadır. Aşağıdaki adımları takip ederek kurabilirsiniz:
+Proje Python 3.10+ üzerinde çalışmaktadır. Aşağıdaki adımları takip ederek projeyi kendi bilgisayarınızda ayağa kaldırabilirsiniz:
 
-1. Gereksinimleri yükleyin:
-   ```bash
-   pip install -r requirements.txt
-   ```
-   *(Not: requirements.txt dosyası CUDA 11.8 ile PyTorch yükleyecek şekilde ayarlanmıştır.)*
-
-2. Kaggle veri setini indirmek için Kaggle API gereklidir:
-   Proje ana dizininde (`C:\Users\aysen\OneDrive\Masaüstü\CarettaCaretta_Tanıma`) bulunan `kaggle.json` dosyasının geçerli bir Kaggle API token barındırdığından emin olun.
-   Eğer veriyi kendiniz indirdiyseniz, veri klasörünü proje altındaki `data/` klasörüne kopyalayabilirsiniz.
-
-## Çalıştırma
-
-Tüm pipeline'ı çalıştırmak için:
-
+### 1. Gereksinimleri Yükleyin
 ```bash
-python main.py
+pip install streamlit tensorflow pillow numpy pandas
 ```
 
-Sistem otomatik olarak GPU varlığını kontrol eder:
-- GPU varsa: Tüm veri setiyle tam iterasyon çalıştırılır.
-- GPU yoksa: CPU üzerinde sadece 50 kaplumbağadan oluşan bir alt küme (subset) ile eğitim yapılır.
+### 2. Modeli Projeye Ekleyin
+Projenin çalışabilmesi için Kaggle'da eğitilen **100MB** boyutlarındaki model dosyasına ihtiyacınız var.
+- `sea_turtle_model_v1.keras` dosyasını indirin ve projenin ana dizinine yerleştirin.
 
-## Çıktılar
+### 3. Uygulamayı Başlatın
+Terminal veya komut satırından projenin bulunduğu klasöre gidin ve şu komutu çalıştırın:
+```bash
+streamlit run app.py
+```
 
-Sonuçlar `results/` klasörü altına kaydedilir:
-- `metrics.json`: Top-1 ve Top-5 doğruluk oranları.
-- `confusion_matrix.png`: Modelin tahminlerine ait hata matrisi grafiği.
+Tarayıcınızda otomatik olarak açılan ekrandan "Bir Görsel Seçin" butonuna tıklayarak kaplumbağa fotoğrafı yükleyebilir ve sonucu görebilirsiniz!
+
+## 📌 Notlar
+- `models/id_to_label.json` dosyası, modelin 0-437 arası döndürdüğü sınıfları gerçek ID'lere dönüştürür. Eğer bu dosya eksikse sistem otomatik olarak MOCK bir JSON dosyası oluşturur.
+- Model ağırlıkları GitHub dosya boyutu limitlerinden dolayı `.gitignore` ile yoksayılmıştır. Kodları clone'ladıktan sonra modelinizi manuel eklemeyi unutmayın.
