@@ -25,10 +25,19 @@ class MatchingAgent:
         else:
             try:
                 with open(ID_MAP_PATH, 'r') as f:
-                    self.id_to_label = json.load(f)
-                # Map integer index back to Turtle ID
-                self.label_to_id = {int(v): str(k) for k, v in self.id_to_label.items()}
-                print("[MatchingAgent] ID mapping loaded successfully.")
+                    data = json.load(f)
+                
+                # The root id_to_label.json is {"0": "t001", "1": "t002", ...}
+                # Check if keys are digits (indices) or strings (IDs)
+                first_key = list(data.keys())[0]
+                if first_key.isdigit():
+                    # Format: {index: ID}
+                    self.label_to_id = {int(k): str(v) for k, v in data.items()}
+                else:
+                    # Format: {ID: index}
+                    self.label_to_id = {int(v): str(k) for k, v in data.items()}
+                
+                print(f"[MatchingAgent] ID mapping loaded successfully with {len(self.label_to_id)} classes.")
             except Exception as e:
                 print(f"[MatchingAgent] Failed to load ID map: {e}")
                 raise

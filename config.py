@@ -13,9 +13,9 @@ KAGGLE_DATASET = "wildlife-datasets/seaturtleid2022"
 # Device configuration
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Determine if we should use a subset (if CPU is used)
-USE_SUBSET = not torch.cuda.is_available()
-SUBSET_SIZE = 100  # Number of unique turtles to use if CPU
+# Determine if we should use a subset (Set to False to use ALL classes)
+USE_SUBSET = False
+SUBSET_SIZE = 438  # Total number of unique turtles
 
 # Hyperparameters
 IMG_SIZE = 224
@@ -27,7 +27,7 @@ NUM_EPOCHS = 20
 # Keras Inference
 MODEL_PATH = "sea_turtle_model_v1.keras"
 CLASSES_COUNT = 438
-ID_MAP_PATH = "models/id_to_label.json"
+ID_MAP_PATH = os.path.join(BASE_DIR, "id_to_label.json")
 EMBEDDING_DIM = 2048
 
 # Check results directory exists

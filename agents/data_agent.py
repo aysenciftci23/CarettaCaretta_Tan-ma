@@ -150,3 +150,14 @@ class DataAgent:
             },
             'num_classes': len(train_dataset.unique_ids)
         }
+    def get_sample_image_for_id(self, turtle_id):
+        """Returns the first image path found for a specific turtle ID."""
+        try:
+            df = self.load_metadata()
+            samples = df[df['turtle_id'] == turtle_id]
+            if not samples.empty:
+                return samples.iloc[0]['image_path']
+            return None
+        except Exception as e:
+            print(f"[DataAgent] Error fetching sample for {turtle_id}: {e}")
+            return None
